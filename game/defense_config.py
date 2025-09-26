@@ -1,3 +1,5 @@
+import random
+
 def DAMAGE_CATEGORY(damage):
     if damage <= 8:
         return "LIGHT"
@@ -31,33 +33,28 @@ DEFENSE_EFFECTIVENESS = {
     }
 }
 
-def calculate_defense_modifiers(defense_rating):
-    defense_bonus = defense_rating / 100.0
-    deflection_bonus = defense_bonus * 0.4
-    reduction_bonus = defense_bonus * 0.2
-    return deflection_bonus, reduction_bonus
-
-def apply_armor_penetration(deflection_chance, armor_penetration):
-    penetration_factor = armor_penetration / 100.0
-    deflection_penalty = penetration_factor * 0.3
-    return max(0.05, deflection_chance - deflection_penalty)
-
 def calculate_threshold_defense(damage, defense_rating, armor_penetration=0):
-    import random
     category = DAMAGE_CATEGORY(damage)
     base = DEFENSE_EFFECTIVENESS[category]
-    deflection_bonus, reduction_bonus = calculate_defense_modifiers(defense_rating)
-    deflection_chance = base["deflection_chance"] + deflection_bonus
-    deflection_chance = apply_armor_penetration(deflection_chance, armor_penetration)
+    
+    # Calculate bonuses
+    defense_bonus = defense_rating * 0.004  # Each defense point = +0.4% deflection
+    penetration_penalty = armor_penetration * 0.003  # Each armor pen = -0.3% deflection
+    
+    deflection_chance = base["deflection_chance"] + defense_bonus - penetration_penalty
+    deflection_chance = max(0.05, min(0.95, deflection_chance))  # Clamp between 5%-95%
+    
     roll = random.random()
+    
     if roll <= deflection_chance:
+        # Defense succeeds
         reduction_range = base["deflection_amount"]
         reduction_factor = random.uniform(*reduction_range)
-        reduction_factor = min(0.95, reduction_factor + reduction_bonus)
         blocked = int(damage * reduction_factor)
         actual = max(1, damage - blocked)
         return actual, blocked, True, category
     else:
+        # Defense fails
         penetration_range = base["penetration_amount"]
         penetration_factor = random.uniform(*penetration_range)
         actual = int(damage * penetration_factor)

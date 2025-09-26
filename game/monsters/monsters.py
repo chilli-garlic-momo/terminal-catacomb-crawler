@@ -119,13 +119,18 @@ class Monster:
         return self.hp > 0
         
     def take_damage(self, damage, attacker_armor_penetration=0):
+        from game.defense_config import calculate_threshold_defense
         defense_rating = self.derived_stats.get("damage_reduction", 0)
         actual, blocked, succeeded, category = calculate_threshold_defense(
             damage, defense_rating, attacker_armor_penetration
         )
         self.hp -= actual
-        # Optionally: store blocked damage or log it
+        died = False
+        if self.hp <= 0:
+            self.hp = 0
+            died = True
         return actual, blocked, succeeded, category
+
         
     def get_distance_to(self, x, y):
         """Calculate distance to a position"""
