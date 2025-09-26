@@ -5,6 +5,33 @@ Combat System - Turn-based combat with initiative and scalable mechanics
 import random
 
 def generate_defense_message(result, attacker_name, defender_name):
+    """Generate enhanced combat messages using new defense data"""
+    actual, blocked, succeeded, category = result
+    total = actual + blocked
+    
+    if succeeded:
+        if blocked > total * 0.7:
+            if category == "LIGHT":
+                return f"{defender_name} easily deflects the light attack! ({blocked} damage blocked)"
+            elif category == "MEDIUM":
+                return f"{defender_name} skillfully parries the blow! ({blocked} damage deflected)"
+            elif category == "HEAVY":
+                return f"{defender_name} impressively deflects the heavy strike! ({blocked} damage absorbed)"
+            else:
+                return f"{defender_name} miraculously deflects the devastating attack! ({blocked} damage blocked)"
+        else:
+            return f"{defender_name} partially deflects the attack ({blocked} damage reduced)"
+    else:
+        if actual > total * 0.9:
+            if category in ["HEAVY", "MASSIVE"]:
+                return f"The powerful attack smashes through {defender_name}'s defenses!"
+            else:
+                return f"The attack finds its mark, bypassing {defender_name}'s guard!"
+        else:
+            return f"{defender_name}'s defenses are partly overcome ({blocked} damage still blocked)"
+
+
+def generate_defense_message(result, attacker_name, defender_name):
     actual, blocked, succeeded, category = result
     total = actual + blocked
     if succeeded:

@@ -5,7 +5,7 @@ Player Character - Handles player stats, inventory, and actions
 from ..items.items import Equipment
 from .player_database import PlayerDatabase
 from .stats_system import StatsSystem, LEGACY_ALIASES
-from game.defense_config import calculate_threshold_defense
+from game.defense_config import calculate_threshold_defense, generate_defense_message
 
 class Player:
     """Player character class"""
@@ -173,7 +173,6 @@ class Player:
         return self.hp > 0
 
     def take_damage(self, damage, attacker_armor_penetration=0):
-        from game.defense_config import calculate_threshold_defense
         defense_rating = self.damage_reduction
         actual, blocked, succeeded, category = calculate_threshold_defense(
             damage, defense_rating, attacker_armor_penetration
@@ -181,6 +180,7 @@ class Player:
         self.hp -= actual
         died = self.hp <= 0
         return actual, blocked, succeeded, category
+
 
 
     def heal(self, amount):
