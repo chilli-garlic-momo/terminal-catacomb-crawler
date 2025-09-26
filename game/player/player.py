@@ -5,6 +5,7 @@ Player Character - Handles player stats, inventory, and actions
 from ..items.items import Equipment
 from .player_database import PlayerDatabase
 from .stats_system import StatsSystem, LEGACY_ALIASES
+from game.defense_config import calculate_threshold_defense
 
 class Player:
     """Player character class"""
@@ -172,34 +173,13 @@ class Player:
         return self.hp > 0
 
     def take_damage(self, damage, attacker_armor_penetration=0):
-        """Player takes damage with percentage-based damage reduction and armor penetration"""
-        # Calculate effective damage reduction based on armor penetration
-        effective_damage_reduction = max(0, self.damage_reduction - attacker_armor_penetration)
-        
-        # Apply percentage-based damage reduction
-        damage_reduction_factor = effective_damage_reduction / 100.0
-        damage_after_reduction = damage * (1 - damage_reduction_factor)
-        
-        # Ensure minimum damage of 1
-        actual_damage = max(1, int(damage_after_reduction))
-        deflected_damage = damage - actual_damage
-        
-        self.hp -= actual_damage
-
-        died = False
-        if self.hp <= 0:
-            self.hp = 0
-            died = True
-
-        return {
-            "died": died,
-            "deflected": deflected_damage,
-            "damage_reduction": effective_damage_reduction,
-            "base_damage_reduction": self.damage_reduction,
-            "attacker_armor_penetration": attacker_armor_penetration,
-            "original_damage": damage,
-            "final_damage": actual_damage
-        }
+    defense_rating = self.derived_stats.get("damage_reduction", 0)
+    actual, blocked, succeeded, category = calculate_threshold_defense(
+        damage, defense_rating, attacker_armor_penetration
+    )
+    self.hp -= actual
+    # Optionally: store blocked damage or log it
+    return actual, blocked, succeeded, category
 
     def heal(self, amount):
         """Heal the player"""
@@ -332,6 +312,8 @@ class Player:
         # === APPLY DAMAGE ===
         player_armor_penetration = self.armor_penetration
         result = enemy.take_damage(total_damage, player_armor_penetration)
+        message = generate_defense_message(result, player.name, enemy.name)
+        print(message) # Or pass to your UI/log
         
         # === EXPERIENCE AND LEVELING ===
         enemy_died = result["died"]

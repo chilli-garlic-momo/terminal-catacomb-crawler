@@ -4,6 +4,7 @@ Monster System - Handles monster AI, stats, and combat using MonsterDatabase
 
 import random
 from .monster_database import MonsterDatabase, MonsterStatsSystem
+from game.defense_config import calculate_threshold_defense
 
 class Monster:
     """Base monster class using MonsterDatabase for definitions"""
@@ -118,30 +119,13 @@ class Monster:
         return self.hp > 0
         
     def take_damage(self, damage, attacker_armor_penetration=0):
-        """Monster takes damage with percentage-based damage reduction and armor penetration"""
-        # Calculate effective damage reduction based on armor penetration
-        effective_damage_reduction = max(0, self.derived_stats.get('damage_reduction', 0) - attacker_armor_penetration)
-        
-        # Apply percentage-based damage reduction
-        damage_reduction_factor = effective_damage_reduction / 100.0
-        damage_after_reduction = damage * (1 - damage_reduction_factor)
-        
-        # Ensure minimum damage of 1
-        actual_damage = max(1, int(damage_after_reduction))
-        deflected_damage = damage - actual_damage
-        
-        self.hp -= actual_damage
-        
-        died = False
-        if self.hp <= 0:
-            self.hp = 0
-            died = True
-        
-        return {
-            "died": died,
-            "deflected": deflected_damage,
-            "damage_reduction": effective_damage_reduction
-        }
+    defense_rating = self.derived_stats.get("damage_reduction", 0)
+    actual, blocked, succeeded, category = calculate_threshold_defense(
+        damage, defense_rating, attacker_armor_penetration
+    )
+    self.hp -= actual
+    # Optionally: store blocked damage or log it
+    return actual, blocked, succeeded, category
         
     def get_distance_to(self, x, y):
         """Calculate distance to a position"""
@@ -374,6 +358,8 @@ class Monster:
         # Apply attack to player
         monster_armor_penetration = self.derived_stats.get('armor_penetration', 0) if hasattr(self, 'derived_stats') else 0
         damage_result = player.take_damage(final_damage, monster_armor_penetration)
+        message = generate_defense_message(damage_result, monster.name, player.name)
+        print(message) # Or pass to your UI/log
         player_died = damage_result["died"]
         
         # Handle special effects

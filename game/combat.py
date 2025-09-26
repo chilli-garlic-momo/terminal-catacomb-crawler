@@ -4,6 +4,31 @@ Combat System - Turn-based combat with initiative and scalable mechanics
 
 import random
 
+def generate_defense_message(result, attacker_name, defender_name):
+    actual, blocked, succeeded, category = result
+    total = actual + blocked
+    if succeeded:
+        if blocked > total * 0.7:
+            if category == "LIGHT":
+                return f"{defender_name} easily deflects the light attack! ({blocked} damage blocked)"
+            elif category == "MEDIUM":
+                return f"{defender_name} skillfully parries the blow! ({blocked} damage deflected)"
+            elif category == "HEAVY":
+                return f"{defender_name} impressively deflects the heavy strike! ({blocked} damage absorbed)"
+            else:
+                return f"{defender_name} miraculously deflects the devastating attack! ({blocked} damage blocked)"
+        else:
+            return f"{defender_name} partially deflects the attack ({blocked} damage reduced)"
+    else:
+        if actual > total * 0.9:
+            if category in ["HEAVY", "MASSIVE"]:
+                return f"The powerful attack smashes through {defender_name}'s defenses!"
+            else:
+                return f"The attack finds its mark, bypassing {defender_name}'s guard!"
+        else:
+            return f"{defender_name}'s defenses are partly overcome ({blocked} damage still blocked)"
+
+
 class CombatManager:
     """Manages turn-based combat encounters"""
     
@@ -249,7 +274,9 @@ class CombatAction:
             total_damage = max(1, base_damage + damage_roll)
             
             # Apply damage
-            damage_result = target.take_damage(total_damage)
+            result = target.take_damage(damage, attacker_armor_penetration)
+            message = generate_defense_message(result, attacker.name, target.name)
+            print(message)  # Or pass to your UI/log
             target_died = damage_result.get("died", False) if isinstance(damage_result, dict) else damage_result
             
             # Handle experience gain for player
